@@ -5,10 +5,11 @@
 #	> Build options for library
 #	> Run tests
 #	> Refactor source_for and tests_for so they use common code.
+#	> Library name should be a variable
 
 # Configuration
 CXX=g++
-CXXFLAGS=-Wall -Wextra
+CXXFLAGS=-Wall -Wextra -std=c++1y
 LDFLAGS=
 LD=$(CXX)
 
