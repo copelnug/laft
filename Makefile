@@ -1,5 +1,4 @@
 # TODO:
-#	> .h dependancies generation.
 #	> Version management
 #	> Extract specific configuration
 #	> Build options for library
@@ -20,6 +19,8 @@ DIR_EXE_TESTS=bin-tests
 # Intermediate directories
 DIR_OBJECT=object
 DIR_OBJECT_TESTS=object-tests
+DIR_DEPENDANCIES=d
+DIR_DEPENDANCIES_TESTS=d-tests
 
 # Source directory
 DIR_TESTS=tests
@@ -37,8 +38,12 @@ run-test: tests
 clean:
 	@echo Removing objects files
 	@rm -rf $(DIR_OBJECT)
+	@echo Removing dependancies files
+	@rm -rf $(DIR_DEPENDANCIES)
 	@echo Removing test objects files
 	@rm -rf $(DIR_OBJECT_TESTS)
+	@echo Removing test dependancies files
+	@rm -rf $(DIR_DEPENDANCIES_TESTS)
 reset: clean
 	@echo Removing test binaries
 	@rm -rf $(DIR_EXE_TESTS)
@@ -60,10 +65,12 @@ $(DIR_LIB)/liblaft-%.so: $(DIR_SRC)/%
 	@mkdir -p $(DIR_LIB)
 	@$(LD) -o $@ -shared $(filter %.o,$^) -L$(DIR_LIB) $(patsubst $(DIR_LIB)/lib%.so,-l%,$(filter %.so,$^))
 
-object/%.o: $(DIR_SRC)/%.cpp
+$(DIR_OBJECT)/%.o: $(DIR_SRC)/%.cpp
 	@echo "\tCompile: $<"
 	@mkdir -p $(dir $@)
 	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE)
+	@mkdir -p $(dir $(patsubst $(DIR_SRC)/%.cpp,$(DIR_DEPENDANCIES)/%.d,$<))
+	@$(CXX) -MM $< -o $(patsubst $(DIR_SRC)/%.cpp,$(DIR_DEPENDANCIES)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE)
 
 # Tests
 $(DIR_EXE_TESTS)/%.tests: $(DIR_TESTS)/% $(DIR_LIB)/liblaft-%.so
@@ -75,6 +82,8 @@ $(DIR_OBJECT_TESTS)/%.o: $(DIR_TESTS)/%.cpp
 	@echo "\tCompile: $<"
 	@mkdir -p $(dir $@)
 	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE)
+	@mkdir -p $(dir $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<))
+	@$(CXX) -MM $< -o $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE)
 
 # Specific
 $(DIR_LIB)/liblaft-core.so: $(call source_for, core)
@@ -82,4 +91,10 @@ $(DIR_LIB)/liblaft-math-stats.so: $(call source_for, math-stats)
 $(DIR_EXE_TESTS)/core.tests: $(call tests_for,core)
 $(DIR_EXE_TESTS)/math-stats.tests: $(call tests_for,math-stats)
 
+
+# Include
+-include $(DIR_DEPENDANCIES)/*/*.d
+-include $(DIR_DEPENDANCIES)/*/*/*.d
+-include $(DIR_DEPENDANCIES_TESTS)/*/*.d
+-include $(DIR_DEPENDANCIES_TESTS)/*/*/*.d
 
