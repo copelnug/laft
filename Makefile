@@ -30,7 +30,7 @@ DIR_INCLUDE=include
 # Phony targets
 .PHONY: all libs tests clean reset
 all: libs
-libs: $(addsuffix .so,$(addprefix $(DIR_LIB)/liblaft-,$(notdir $(wildcard $(DIR_SRC)/*))))
+libs: $(addsuffix .so,$(addprefix $(DIR_LIB)/liblaft-,$(notdir $(wildcard $(DIR_SRC)/*)))) tests
 tests: $(addsuffix .tests,$(addprefix $(DIR_EXE_TESTS)/,$(notdir $(wildcard $(DIR_TESTS)/*))))
 run-test: tests
 	@
