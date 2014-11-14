@@ -1,0 +1,6 @@
+#ifndef LAFT_CORE_LAFT_HPP_INCLUDED
+#define LAFT_CORE_LAFT_HPP_INCLUDED
+
+#define LAFT_UNUSED_ARG(x) (void)x
+
+#endif
