@@ -39,7 +39,7 @@ namespace laft
 template <typename Implementation>
 Implementation& laft::core::Mixin<Implementation>::self()
 {
-	return *static_cast<Implementation*>(this);
+	return *reinterpret_cast<Implementation*>(this);
 }
 /**
 	\brief Access the concrete class (const version).
@@ -49,7 +49,7 @@ Implementation& laft::core::Mixin<Implementation>::self()
 template <typename Implementation>
 Implementation const& laft::core::Mixin<Implementation>::self() const
 {
-	return *static_cast<Implementation const*>(this);
+	return *reinterpret_cast<Implementation const*>(this);
 }
 
 #endif

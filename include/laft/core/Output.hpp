@@ -18,7 +18,7 @@ namespace laft
 			multiple ways to receive bytes. 
 			
 			Require that Implementation has the following method:
-			> _ write(char const *buffer, size_t length)
+			> _ write_impl(char const *buffer, size_t length)
 		*/
 		template <typename Implementation>
 		class Output : private Mixin<Implementation>
@@ -27,6 +27,7 @@ namespace laft
 				void write(char value);
 				void write(char const *value);
 				void write(std::string const& value);
+				void write(char const *value, size_t length);
 		};
 	}
 }
@@ -41,7 +42,7 @@ namespace laft
 template <typename Implementation>
 void laft::core::Output<Implementation>::write(char value)
 {
-	write(&value, 1);
+	this->self().write_impl(&value, 1);
 }
 /**
 	\brief Write a C-string to the output.
@@ -51,7 +52,7 @@ void laft::core::Output<Implementation>::write(char value)
 template <typename Implementation>
 void laft::core::Output<Implementation>::write(char const *value)
 {
-	write(value, std::strlen(value));
+	this->self().write_impl(value, std::strlen(value));
 }
 /**
 	\brief Write a std::string to the output.
@@ -61,7 +62,17 @@ void laft::core::Output<Implementation>::write(char const *value)
 template <typename Implementation>
 void laft::core::Output<Implementation>::write(std::string const& value)
 {
-	write(value.c_str(), value.length());
+	this->self().write_impl(value.c_str(), value.length());
 }
-
+/**
+	\brief Write bytes to the output.
+	\tparam Implementation Concrete class.
+	\param value Bytes to write.
+	\param length Number of bytes to write.
+*/
+template <typename Implementation>
+void laft::core::Output<Implementation>::write(char const *value, size_t length)
+{
+	this->self().write_impl(value, length);
+}
 #endif
