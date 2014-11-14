@@ -12,7 +12,7 @@ namespace laft
 		class StringOutput : public Output<StringOutput>
 		{
 			public:
-				void write(char const *value, size_t length);
+				void write_impl(char const *value, size_t length);
 				
 				void clear();
 				

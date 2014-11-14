@@ -5,7 +5,7 @@
 	\param value Bytes to write.
 	\param length Number of bytes to write.
 */
-void laft::core::StringOutput::write(char const *value, size_t length)
+void laft::core::StringOutput::write_impl(char const *value, size_t length)
 {
 	value_.append(value, length);
 }
