@@ -5,6 +5,9 @@
 #	> Refactor source_for and tests_for so they use common code.
 #	> Library name should be a variable
 
+LIBS=laft-core
+EXE_TEST=unittests
+
 # Configuration
 CXX=g++
 CXXFLAGS=-fPIC -Wall -Wextra -Wconversion -std=c++1y
@@ -13,7 +16,6 @@ LD=$(CXX)
 
 # Destination directories
 DIR_LIB=lib
-DIR_EXE_TESTS=bin-tests
 
 # Intermediate directories
 DIR_OBJECT=object
@@ -27,12 +29,11 @@ DIR_SRC=src
 DIR_INCLUDE=include
 
 # Phony targets
-.PHONY: all libs tests clean reset
-all: libs
-libs: $(addsuffix .so,$(addprefix $(DIR_LIB)/liblaft-,$(notdir $(wildcard $(DIR_SRC)/*)))) tests
-tests: $(addsuffix .tests,$(addprefix $(DIR_EXE_TESTS)/,$(notdir $(wildcard $(DIR_TESTS)/*))))
-run-test: tests
-	@
+.PHONY: all libs clean reset
+all: libs $(EXE_TEST)
+libs: $(addsuffix .so,$(addprefix $(DIR_LIB)/liblaft-,$(notdir $(wildcard $(DIR_SRC)/*))))
+run-test: $(EXE_TEST)
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(DIR_LIB); ./$(EXE_TEST)
 
 clean:
 	@echo Removing objects files
@@ -44,8 +45,8 @@ clean:
 	@echo Removing test dependancies files
 	@rm -rf $(DIR_DEPENDANCIES_TESTS)
 reset: clean
-	@echo Removing test binaries
-	@rm -rf $(DIR_EXE_TESTS)
+	@echo Removing test binary
+	@rm $(EXE_TEST)
 	@echo Removing libraries
 	@rm -rf $(DIR_LIB)
 
@@ -72,23 +73,20 @@ $(DIR_OBJECT)/%.o: $(DIR_SRC)/%.cpp
 	@$(CXX) -MM $< -o $(patsubst $(DIR_SRC)/%.cpp,$(DIR_DEPENDANCIES)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE)
 
 # Tests
-$(DIR_EXE_TESTS)/%.tests: $(DIR_TESTS)/% $(DIR_LIB)/liblaft-%.so
+$(EXE_TEST): $(patsubst $(DIR_TESTS)/%.cpp, $(DIR_OBJECT_TESTS)/%.o, $(wildcard $(DIR_TESTS)/*/*.cpp) $(wildcard $(DIR_TESTS)/*.cpp)) $(patsubst %, $(DIR_LIB)/lib%.so, $(LIBS))
 	@echo "Build test: $@"
-	@mkdir -p $(DIR_EXE_TESTS)
-	@$(LD) -o $@ $(LDFLAGS) $(filter %.o,$^) -L$(DIR_LIB) $(patsubst $(DIR_LIB)/lib%.so,-l%,$(filter %.so,$^))
+	@$(LD) -o $@ $(LDFLAGS) $(filter %.o,$^) -L$(DIR_LIB) $(addprefix -l, $(LIBS))
 
 $(DIR_OBJECT_TESTS)/%.o: $(DIR_TESTS)/%.cpp
 	@echo "\tCompile: $<"
 	@mkdir -p $(dir $@)
-	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE)
+	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE) -DBOOST_TEST_DYN_LINK
 	@mkdir -p $(dir $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<))
-	@$(CXX) -MM $< -o $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE)
+	@$(CXX) -MM $< -o $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE) -I $(DIR_TESTS)
 
 # Specific
 $(DIR_LIB)/liblaft-core.so: $(call source_for, core)
 $(DIR_LIB)/liblaft-math-stats.so: $(call source_for, math-stats)
-$(DIR_EXE_TESTS)/core.tests: $(call tests_for,core)
-$(DIR_EXE_TESTS)/math-stats.tests: $(call tests_for,math-stats)
 
 
 # Include
