@@ -5,7 +5,7 @@
 #	> Refactor source_for and tests_for so they use common code.
 #	> Library name should be a variable
 
-LIBS=laft-core
+LIBS=laft-text laft-core
 EXE_TEST=unittests
 
 # Configuration
@@ -86,8 +86,8 @@ $(DIR_OBJECT_TESTS)/%.o: $(DIR_TESTS)/%.cpp
 
 # Specific
 $(DIR_LIB)/liblaft-core.so: $(call source_for, core)
+$(DIR_LIB)/liblaft-text.so: $(call source_for, text)
 $(DIR_LIB)/liblaft-math-stats.so: $(call source_for, math-stats)
-
 
 # Include
 -include $(DIR_DEPENDANCIES)/*/*.d
