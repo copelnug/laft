@@ -10,19 +10,26 @@ namespace laft
 {
 	namespace text
 	{
+		/**
+			\brief Concept for a class that build text.
+			\tparam Derive Type implementing theh concept.
+		*/
 		template <typename Derived>
-		class Formatter : protected laft::core::Mixin<Derived>
+		class Builder : protected laft::core::Mixin<Derived>
 		{
 			public:
 				template <typename ...T>
-				Formatter& format(size_t length, char const* formatString, const T&... args);
+				Derived& format(size_t length, char const* formatString, const T&... args);
 		};
-		
+		/**
+			\brief Class to build string in an Output.
+			\tparam Output Type of the output to build for.
+		*/
 		template <typename Output>
-		class TextOutputFormatter : public Formatter<TextOutputFormatter<Output>>
+		class OutputBuilder : public Builder<OutputBuilder<Output>>
 		{
 			public:
-				TextOutputFormatter(Output& output);
+				OutputBuilder(Output& output);
 			
 				void write(char const* text, size_t length);
 				template <typename T>
@@ -88,7 +95,7 @@ namespace laft
 		}
 		template <typename Derived>
 		template <typename ...T>
-		Formatter<Derived>& Formatter<Derived>::format(size_t length, char const* formatString, const T&... args)
+		Derived& Builder<Derived>::format(size_t length, char const* formatString, const T&... args)
 		{
 			impl::ArgsHelpers<Derived, T...> helper(this->self(), args...);
 			// TODO use string::find. Do not write characters 1 by 1.
@@ -151,20 +158,20 @@ namespace laft
 					throw std::logic_error("Missing value after $");
 				helper.handle(index);
 			}
-			return *this;
+			return this->self();
 		}
 		template <typename Output>
-		TextOutputFormatter<Output>::TextOutputFormatter(Output& output) :
+		OutputBuilder<Output>::OutputBuilder(Output& output) :
 			output_(output)
 		{}
 		template <typename Output>
-		void TextOutputFormatter<Output>::write(char const* text, size_t length)
+		void OutputBuilder<Output>::write(char const* text, size_t length)
 		{
 			output_.write(text, length);
 		}
 		template <typename Output>
 		template <typename T>
-		void TextOutputFormatter<Output>::write(T const& value)
+		void OutputBuilder<Output>::write(T const& value)
 		{
 			output_.write(value);
 		}
@@ -183,7 +190,7 @@ namespace laft
 		template <typename Output, typename ...T>
 		void format(Output& output, size_t length, char const* formatString, const T&... args)
 		{
-			TextOutputFormatter<Output> out(output);
+			OutputBuilder<Output> out(output);
 			out.format(length, formatString, args...);
 		}
 	}
