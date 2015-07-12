@@ -1,0 +1,12 @@
+#######################
+# Target
+unittests
+doc/
+lib/
+
+#######################
+# Build folders
+d/
+d-tests/
+object/
+object-tests/
