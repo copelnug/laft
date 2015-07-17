@@ -11,6 +11,10 @@ namespace laft
 	namespace text
 	{
 		/**
+			\brief Concept of a class that is used to format a value.
+		*/
+		class Format {};
+		/**
 			\brief Concept for a class that build text.
 			\tparam Derive Type implementing theh concept.
 		*/
@@ -31,9 +35,11 @@ namespace laft
 			public:
 				OutputBuilder(Output& output);
 			
-				void write(char const* text, size_t length);
-				template <typename T>
-				void write(T const& value);
+				void writeText(char const* text, size_t length);
+				template <typename T, typename std::enable_if<!std::is_base_of<Format, T>::value, bool>::type = true>
+				void writeValue(T const& value);
+				template <typename T, typename std::enable_if<std::is_base_of<Format, T>::value, bool>::type = true>
+				void writeValue(T const& value);
 			private:
 				Output& output_;
 		};
@@ -44,7 +50,76 @@ namespace laft
 		std::string format(size_t length, char const* formatString, const T&... args);
 		
 		template <typename Output, typename ...T>
-		void format(Output& output, size_t length, char const* formatString, const T&... args);
+		void format_in(Output& output, size_t length, char const* formatString, const T&... args);
+		
+		class CharFormat : public Format {
+			public:
+				using const_iterator = const char*;
+				
+				CharFormat(char value);
+				
+				const_iterator begin() const;
+				const_iterator end() const;
+			private:
+				char value_[2];
+		};
+		class DecimalSignedFormat : public Format { // TODO Variable size? uint8_t, uint
+			public:
+				using const_iterator = const char*;
+				
+				DecimalSignedFormat(int64_t value);
+				
+				const_iterator begin() const;
+				const_iterator end() const;
+			private:
+				char representation_[1+19+1]; /* std::ceil(std::log10(std::exp2(63))) */
+				char* begin_;
+		};
+		class DecimalUnsignedFormat : public Format {
+			public:
+				using const_iterator = const char*;
+				
+				DecimalUnsignedFormat(uint64_t value);
+				
+				const_iterator begin() const;
+				const_iterator end() const;
+			private:
+				char representation_[20+1]; /* std::ceil(std::log10(std::exp2(64))) */
+				char* begin_;
+		};
+		class CStringFormat : public Format {
+			public:
+				using const_iterator = const char*;
+				
+				CStringFormat(const char* value);
+				
+				const_iterator begin() const;
+				const_iterator end() const;
+			private:
+				const char* value_;
+		};
+		class StringFormat : public Format {
+			public:
+				using const_iterator = std::string::const_iterator;
+				
+				StringFormat(const std::string& value);
+				
+				const_iterator begin() const;
+				const_iterator end() const;
+			private:
+				const std::string& value_;
+		};
+		
+		CharFormat as_text(bool value);
+		CharFormat as_text(char value);
+		DecimalSignedFormat as_text(int16_t value);
+		DecimalSignedFormat as_text(int32_t value);
+		DecimalSignedFormat as_text(int64_t value);
+		DecimalUnsignedFormat as_text(uint16_t value);
+		DecimalUnsignedFormat as_text(uint32_t value);
+		DecimalUnsignedFormat as_text(uint64_t value);
+		CStringFormat as_text(const char* value);
+		StringFormat as_text(const std::string& value);
 	}
 }
 
@@ -70,7 +145,7 @@ namespace laft
 					void handle(size_t i)
 					{
 						if(i == 0)
-							ArgsHelpers<Form>::formatter_.write(arg_);
+							ArgsHelpers<Form>::formatter_.writeValue(arg_);
 						else
 							ArgsHelpers<Form, R...>::handle(i - 1);
 					}
@@ -113,7 +188,7 @@ namespace laft
 						if(parsing)
 						{
 							parsing = false;
-							this->self().write(&c, 1);
+							this->self().writeText(&c, 1);
 						}
 						else
 						{
@@ -147,7 +222,7 @@ namespace laft
 							helper.handle(index);
 							parsing = false;
 						}
-						this->self().write(&c, 1);
+						this->self().writeText(&c, 1);
 						break;
 				}
 			}
@@ -165,15 +240,24 @@ namespace laft
 			output_(output)
 		{}
 		template <typename Output>
-		void OutputBuilder<Output>::write(char const* text, size_t length)
+		void OutputBuilder<Output>::writeText(char const* text, size_t length)
 		{
 			output_.write(text, length);
 		}
 		template <typename Output>
-		template <typename T>
-		void OutputBuilder<Output>::write(T const& value)
+		template <typename T, typename std::enable_if<!std::is_base_of<Format, T>::value, bool>::type>
+		void OutputBuilder<Output>::writeValue(T const& value)
 		{
-			output_.write(value);
+			writeValue(as_text(value));
+		}
+		template <typename Output>
+		template <typename T, typename std::enable_if<std::is_base_of<Format, T>::value, bool>::type>
+		void OutputBuilder<Output>::writeValue(T const& format)
+		{
+			for(char c : format)
+			{
+				output_.write(c);
+			}
 		}
 		template <typename ...T>
 		std::string format(std::string const& formatString, const T&... args)
@@ -184,11 +268,11 @@ namespace laft
 		std::string format(size_t length, char const* formatString, const T&... args)
 		{
 			laft::core::StringOutput out;
-			format(out, length, formatString, args...);
+			format_in(out, length, formatString, args...);
 			return out.extract();
 		}
 		template <typename Output, typename ...T>
-		void format(Output& output, size_t length, char const* formatString, const T&... args)
+		void format_in(Output& output, size_t length, char const* formatString, const T&... args)
 		{
 			OutputBuilder<Output> out(output);
 			out.format(length, formatString, args...);
