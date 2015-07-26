@@ -14,7 +14,7 @@ void laft::core::StringOutput::write_impl(char const *value, size_t length)
 */
 void laft::core::StringOutput::clear()
 {
-	value_.erase();
+	value_.clear();
 }
 /**
 	\brief Extract the content of the string. Clearing it in the process.
