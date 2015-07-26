@@ -1,5 +1,6 @@
 #ifndef LAFT_TEXT_FORMAT_HPP_INCLUDED
 #define LAFT_TEXT_FORMAT_HPP_INCLUDED
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 
@@ -173,65 +174,50 @@ namespace laft
 		Derived& Builder<Derived>::format(size_t length, char const* formatString, const T&... args)
 		{
 			impl::ArgsHelpers<Derived, T...> helper(this->self(), args...);
-			// TODO use string::find. Do not write characters 1 by 1.
-			bool parsing = false;
-			bool found = false;
-			size_t index = 0;
-			for(size_t i = 0; i < length; ++i)
+			
+			char const* start = formatString;
+			char const* end = start + length;
+			
+			while(true)
 			{
-				char c = formatString[i];
+				char const* current = std::find(start, end, '$');
 				
-				switch(c)
+				this->self().writeText(start, current - start);
+				
+				if(current != end)
 				{
-					case '$':
-						found = true;
-						if(parsing)
-						{
-							parsing = false;
-							this->self().writeText(&c, 1);
-						}
-						else
-						{
-							index = 0;
-							found = false;
-							parsing = true;
-						}
-						break;
-					case '0':
-					case '1':
-					case '2':
-					case '3':
-					case '4':
-					case '5':
-					case '6':
-					case '7':
-					case '8':
-					case '9':
-						if(parsing)
-						{
-							found = true;
-							index = index * 10 + c - '0';
-							break;
-						}
-						// Continue
-					default:
-						if(parsing)
-						{
-							if(!found)
-								throw std::logic_error("Missing value after $");
-							helper.handle(index);
-							parsing = false;
-						}
-						this->self().writeText(&c, 1);
-						break;
+					++current;
+					
+					if(current == end)
+						throw std::logic_error("Missing value after $");
+					
+					if(*current == '$')
+					{
+						this->self().writeText(current, 1);
+						start = current + 1;
+					}
+					else
+					{
+						size_t index = 0;
+						start = std::find_if(current, end, [&](char c) {
+							switch(c)
+							{
+								case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+									index = index * 10 + c - '0';
+									return false;
+								default:
+									return true;
+							}
+						});
+						
+						if(start == current)
+							throw std::logic_error("Missing value after $");
+						
+						helper.handle(index);
+					}
 				}
-			}
-				
-			if(parsing)
-			{
-				if(!found)
-					throw std::logic_error("Missing value after $");
-				helper.handle(index);
+				else
+					break;
 			}
 			return this->self();
 		}
