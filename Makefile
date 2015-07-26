@@ -7,6 +7,7 @@
 
 LIBS=laft-text laft-core
 EXE_TEST=unittests
+EXE_PERF=perftest
 
 # Configuration
 CXX=g++
@@ -18,22 +19,29 @@ LD=$(CXX)
 DIR_LIB=lib
 
 # Intermediate directories
-DIR_OBJECT=object
-DIR_OBJECT_TESTS=object-tests
-DIR_DEPENDANCIES=d
-DIR_DEPENDANCIES_TESTS=d-tests
+DIR_OBJECT=object/lib
+DIR_OBJECT_TESTS=object/tests
+DIR_OBJECT_PERF=object/perf
+DIR_DEPENDANCIES=d/lib
+DIR_DEPENDANCIES_TESTS=d/tests
+DIR_DEPENDANCIES_PERF=d/perf
 
 # Source directory
 DIR_TESTS=tests
+DIR_PERF=perf
 DIR_SRC=src
 DIR_INCLUDE=include
 
 # Phony targets
-.PHONY: all libs clean reset
+.PHONY: all libs clean reset run-tests run-perf profile
 all: libs $(EXE_TEST)
 libs: $(addsuffix .so,$(addprefix $(DIR_LIB)/liblaft-,$(notdir $(wildcard $(DIR_SRC)/*))))
 run-test: $(EXE_TEST)
 	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(DIR_LIB); ./$(EXE_TEST)
+run-perf: $(EXE_PERF)
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(DIR_LIB); ./$(EXE_PERF)
+profile: $(EXE_PERF)
+	@export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(DIR_LIB); valgrind --tool=callgrind --dump-instr=yes --simulate-cache=yes --collect-jumps=yes ./$(EXE_PERF)
 
 clean:
 	@echo Removing objects files
@@ -44,9 +52,15 @@ clean:
 	@rm -rf $(DIR_OBJECT_TESTS)
 	@echo Removing test dependancies files
 	@rm -rf $(DIR_DEPENDANCIES_TESTS)
+	@echo Removing performance test objects files
+	@rm -rf $(DIR_OBJECT_PERF)
+	@echo Removing performance test dependancies files
+	@rm -rf $(DIR_DEPENDANCIES_PERF)
 reset: clean
+	@echo Removing performance test
+	@rm -f $(EXE_PERF)
 	@echo Removing test binary
-	@rm $(EXE_TEST)
+	@rm -f $(EXE_TEST)
 	@echo Removing libraries
 	@rm -rf $(DIR_LIB)
 
@@ -80,10 +94,22 @@ $(EXE_TEST): $(patsubst $(DIR_TESTS)/%.cpp, $(DIR_OBJECT_TESTS)/%.o, $(wildcard 
 $(DIR_OBJECT_TESTS)/%.o: $(DIR_TESTS)/%.cpp
 	@echo "\tCompile: $<"
 	@mkdir -p $(dir $@)
-	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE) -DBOOST_TEST_DYN_LINK
+	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE)
 	@mkdir -p $(dir $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<))
 	@$(CXX) -MM $< -o $(patsubst $(DIR_TESTS)/%.cpp,$(DIR_DEPENDANCIES_TESTS)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE) -I $(DIR_TESTS)
 
+# Performance
+$(EXE_PERF): $(patsubst $(DIR_PERF)/%.cpp, $(DIR_OBJECT_PERF)/%.o, $(wildcard $(DIR_PERF)/*/*.cpp) $(wildcard $(DIR_PERF)/*.cpp)) $(patsubst %, $(DIR_LIB)/lib%.so, $(LIBS))
+	@echo "Build performance test: $@"
+	@$(LD) -o $@ $(LDFLAGS) $(filter %.o,$^) -L$(DIR_LIB) $(addprefix -l, $(LIBS))
+
+$(DIR_OBJECT_PERF)/%.o: $(DIR_PERF)/%.cpp
+	@echo "\tCompile: $<"
+	@mkdir -p $(dir $@)
+	@$(CXX) -o $@ -c $< $(CXXFLAGS) -I $(DIR_INCLUDE)
+	@mkdir -p $(dir $(patsubst $(DIR_PERF)/%.cpp,$(DIR_DEPENDANCIES_PERF)/%.d,$<))
+	@$(CXX) -MM $< -o $(patsubst $(DIR_PERF)/%.cpp,$(DIR_DEPENDANCIES_PERF)/%.d,$<) -MT $@ -MP -I $(DIR_INCLUDE) -I $(DIR_TESTS)
+	
 # Specific
 $(DIR_LIB)/liblaft-core.so: $(call source_for, core)
 $(DIR_LIB)/liblaft-text.so: $(call source_for, text)
@@ -92,6 +118,8 @@ $(DIR_LIB)/liblaft-math-stats.so: $(call source_for, math-stats)
 # Include
 -include $(DIR_DEPENDANCIES)/*/*.d
 -include $(DIR_DEPENDANCIES)/*/*/*.d
+-include $(DIR_DEPENDANCIES_TESTS)/*.d
 -include $(DIR_DEPENDANCIES_TESTS)/*/*.d
 -include $(DIR_DEPENDANCIES_TESTS)/*/*/*.d
+-include $(DIR_DEPENDANCIES_PERF)/*.d
 

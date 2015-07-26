@@ -1,12 +1,11 @@
 #######################
 # Target
 unittests
+perftest
 doc/
 lib/
 
 #######################
 # Build folders
 d/
-d-tests/
 object/
-object-tests/
