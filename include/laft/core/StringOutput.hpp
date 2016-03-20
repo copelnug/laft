@@ -18,6 +18,12 @@ namespace laft
 				
 				std::string extract();
 				std::string const& get() const;
+				
+				template <typename It>
+				void write_impl(It start, It end)
+				{
+					value_.insert(value_.end(), start, end);
+				}
 			private:
 				std::string value_; /**< \brief String buffer. */
 		};

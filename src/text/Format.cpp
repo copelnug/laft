@@ -69,7 +69,8 @@ namespace laft {
 			return representation_ + sizeof(representation_) - 1;
 		}
 		CStringFormat::CStringFormat(const char* value) :
-			value_(value)
+			value_(value),
+			length_(strlen(value_))
 		{
 		}
 		CStringFormat::const_iterator CStringFormat::begin() const
@@ -78,7 +79,7 @@ namespace laft {
 		}
 		CStringFormat::const_iterator CStringFormat::end() const
 		{
-			return value_ + strlen(value_);
+			return value_ + length_;
 		}
 		StringFormat::StringFormat(const std::string& value) :
 			value_(value)

@@ -28,6 +28,11 @@ namespace laft
 				void write(char const *value);
 				void write(std::string const& value);
 				void write(char const *value, size_t length);
+				template <typename It>
+				void write(It start, It end)
+				{
+					this->self().write_impl(start, end);
+				}
 		};
 	}
 }

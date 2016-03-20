@@ -88,7 +88,7 @@ namespace laft
 				char representation_[20+1]; /* std::ceil(std::log10(std::exp2(64))) */
 				char* begin_;
 		};
-		class CStringFormat : public Format {
+		class CStringFormat : public Format { // TODO: Replace by string view or equivalent.
 			public:
 				using const_iterator = const char*;
 				
@@ -97,7 +97,8 @@ namespace laft
 				const_iterator begin() const;
 				const_iterator end() const;
 			private:
-				const char* value_;
+				char const *const value_;
+				size_t const length_;
 		};
 		class StringFormat : public Format {
 			public:
@@ -240,10 +241,7 @@ namespace laft
 		template <typename T, typename std::enable_if<std::is_base_of<Format, T>::value, bool>::type>
 		void OutputBuilder<Output>::writeValue(T const& format)
 		{
-			for(char c : format)
-			{
-				output_.write(c);
-			}
+			output_.write(format.begin(), format.end());
 		}
 		template <typename ...T>
 		std::string format(std::string const& formatString, const T&... args)
