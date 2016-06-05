@@ -9,3 +9,5 @@ lib/
 # Build folders
 d/
 object/
+debug/
+release
